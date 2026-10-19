@@ -113,7 +113,7 @@ const MENU = {
         component: CareerVirgo,
       },
       {
-        key: "tf2",
+        key: "nespoli",
         label: "Nespoli",
         component: CareerNespoli,
       },
@@ -180,6 +180,12 @@ const MENU = {
 
 const CATEGORY_KEYS = Object.keys(MENU);
 
+function trackEvent(eventName, data = {}) {
+  if (typeof window !== "undefined" && window.umami) {
+    window.umami.track(eventName, data);
+  }
+}
+
 export default function Portfolio({ visible }) {
   const [currentImage, setCurrentImage] = useState(0);
   const [activeCategory, setActiveCategory] = useState("home");
@@ -215,8 +221,39 @@ export default function Portfolio({ visible }) {
       return;
     }
 
+    const firstItem = nextCategory.items[0];
+
+    trackEvent("navigation_category", {
+      category: categoryKey,
+      label: nextCategory.label,
+    });
+
+    trackEvent("navigation_section", {
+      category: categoryKey,
+      section: firstItem.key,
+      label: firstItem.label,
+    });
+
     setActiveCategory(categoryKey);
-    setActiveItem(nextCategory.items[0].key);
+    setActiveItem(firstItem.key);
+  }
+
+  function changeItem(itemKey) {
+    const item = MENU[activeCategory].items.find(
+      (item) => item.key === itemKey,
+    );
+
+    if (!item) {
+      return;
+    }
+
+    trackEvent("navigation_section", {
+      category: activeCategory,
+      section: item.key,
+      label: item.label,
+    });
+
+    setActiveItem(itemKey);
   }
 
   function goPrevious() {
@@ -236,6 +273,7 @@ export default function Portfolio({ visible }) {
 
   function moveSidebar(direction) {
     const currentItems = MENU[activeCategory].items;
+
     const currentIndex = currentItems.findIndex(
       (item) => item.key === activeItem,
     );
@@ -246,9 +284,8 @@ export default function Portfolio({ visible }) {
       (safeCurrentIndex + direction + currentItems.length) %
       currentItems.length;
 
-    setActiveItem(currentItems[nextIndex].key);
+    changeItem(currentItems[nextIndex].key);
   }
-
   useEffect(() => {
     function handleKeyDown(event) {
       const target = event.target;
@@ -342,8 +379,8 @@ export default function Portfolio({ visible }) {
       <div className="pause-content">
         <PauseSidebar
           items={currentCategory.items}
-          activeItem={currentItem.key}
-          setActiveItem={setActiveItem}
+          activeItem={activeItem}
+          setActiveItem={changeItem}
         />
 
         <main className="pause-panel">
